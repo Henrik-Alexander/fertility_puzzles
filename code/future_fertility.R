@@ -1,8 +1,6 @@
 # 
 rm(list = ls()); gc(T)
 
-library
-
 # Load the web-scraping
 source("U:/packages/wpp/R/wpp_scraping.R")
 

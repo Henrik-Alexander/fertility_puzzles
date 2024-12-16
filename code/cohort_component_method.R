@@ -92,13 +92,22 @@ estimate_number_migrants <- function(country, total_pop, year) {
 }
 
 # Cohort component method
-project <- function(pop_f, pop_m, age=age_groups, mx_m, mx_f, fx, srb=1.05) {
+project <- function(pop_f, pop_m, df, srb=1.05, replacement) {
   
   # Get the length of the data
-  n <- length(age)
+  n <- nrow(df)
+  
+  # Check if momentum
+  if (replacement) {
+    fertility <- df$fx_count
+  } else {
+    fertility <- df$fx
+  }
+  
+  cat("TFR=", sum(fertility, na.rm = T), "\n")
   
   # Create df
-  df <- create_df(mx_f, fx, pop_f)
+  df$value_pop <- pop_f
   
   # Estimate the population in 5 years
   pop_f_t <- df$value_pop[1:(n-1)] * df$nLx[2:n] / df$nLx[1:(n-1)]
@@ -106,7 +115,7 @@ project <- function(pop_f, pop_m, age=age_groups, mx_m, mx_f, fx, srb=1.05) {
   pop_f_t <- c(NA, pop_f_t)
   
   # Estimate the births
-  Births <- 5 * df$value_fx * (df$value_pop + pop_f_t)/2
+  Births <- 5 * fertility * (df$value_pop + pop_f_t)/2
   B <- sum(Births, na.rm = T)
   B_f <- B * 1 / (1 + srb)
   
@@ -114,11 +123,11 @@ project <- function(pop_f, pop_m, age=age_groups, mx_m, mx_f, fx, srb=1.05) {
   pop_f_t[1] <- B_f * (df$nLx[1]) / (5*1)
 
   # Create df for men
-  df <- create_df(mx_m, fx, pop_m, sex = "m")
+  df$value_pop <- pop_m
   
   # Estimate the population in 5 years
-  pop_m_t <- df$value_pop[1:(n-1)] * df$nLx[2:n] / df$nLx[1:(n-1)]
-  pop_m_t[length(pop_m_t)] <- (df$value_pop[n] + df$value_pop[n-1]) * (df$Tx[n] / df$Tx[n-1])
+  pop_m_t <- df$value_pop[1:(n-1)] * df$nLx_m[2:n] / df$nLx_m[1:(n-1)]
+  pop_m_t[length(pop_m_t)] <- (df$value_pop[n] + df$value_pop[n-1]) * (df$Tx_m[n] / df$Tx_m[n-1])
   pop_m_t <- c(NA, pop_m_t)
   
   # Assign the births
@@ -162,6 +171,7 @@ project_vital <- function(year, country, srb = 1.05) {
                                   axmethod= "un", 
                                   radix=1))
   df$nLx_m <- lt_male$nLx
+  df$Tx_m <- lt_male$Tx
     
   # Assign identifiers
   df$country <- country
@@ -171,25 +181,31 @@ project_vital <- function(year, country, srb = 1.05) {
   
 }
 
+estimate_tfr <- function(data, asfr = "fx") {
+  sum(data[[asfr]] * 5, na.rm = T)
+}
 
 
 # Cohort component projection
-cohort_component_method <- function(country, start_year, horizon, momentum=F, srb=1.05) {
+cohort_component_method <- function(region, horizon=50, replacement=F, srb=1.05, start_year = 2023) {
   if (horizon %% 5 != 0) stop("The horizon is not divisible by 5, but we are working with 5-year age groups.")
+  if (start_year + horizon > 2100) warning("Projections can only go until 2100!")
   
+  cat(region)
+  
+  # Create the year vector
   years <- seq(start_year, end_year+horizon, by = 5)
   
   # Range of indicators
-  pop <- load_time_series(country=country, indicator="Population by 5-year age groups and sex", start=start_year, end=start_year)
+  pop <- load_time_series(country = region, indicator="Population by 5-year age groups and sex", start=start_year, end=start_year)
   
   # Clean the population data
   pop <- clean_data(pop)
   pop_f <- pop$value[pop$sex == "Female"]
   pop_m <- pop$value[pop$sex == "Male"]
   
-
   # Project the vital statistics data
-  vital <- lapply(years, project_vital, country=country)
+  vital <- lapply(years, project_vital, country=region)
   
   # Create the containers
   projection_m <- projection_f <- matrix(NA, nrow=length(pop_f), ncol=(horizon/5)+1)
@@ -206,22 +222,21 @@ cohort_component_method <- function(country, start_year, horizon, momentum=F, sr
     cat("Year:", year, "\n")
     
     # Project the population
-    projection <- project(projection_f[, i],
-                          projection_m[, i],
-                          mx_m = mx_m, 
-                          mx_f = mx_f,
-                          fx=fx,
-                          srb = srb)
+    projection <- project(pop_f = projection_f[, i],
+                          pop_m = projection_m[, i],
+                          df = vital[[i]],
+                          srb = srb,
+                          replacement = replacement)
     
     # Get the number of migrants
     total_pop <- sum(projection$Males) + sum(projection$Males)
     if (year <= 2100) {
-      migrants <- estimate_number_migrants(country = country,
+      migrants <- estimate_number_migrants(country = region,
                                            total_pop = total_pop,
                                            year = year)
       
     } else {
-      migrants <- estimate_number_migrants(country = country,
+      migrants <- estimate_number_migrants(country = region,
                                            total_pop = total_pop,
                                            year = 2100)
     }
@@ -235,7 +250,9 @@ cohort_component_method <- function(country, start_year, horizon, momentum=F, sr
   # Create the results
   projection <- list("males" = projection_m,
                      "females" = projection_f,
-                     "tfr" = tfr)
+                     "tfr observed" = sapply(vital, estimate_tfr, "fx"),
+                     "tfr replacement" = sapply(vital, estimate_tfr, "fx_count")
+  )
   
   # Return the results
   return(projection)
@@ -265,8 +282,8 @@ compare <- function(observed, counterfactual, f = sum, label = "Population size"
   lines(x=years, y=obs, lwd =2)
   lines(x=years, y=cou, lty=2, lwd = 2)
   legend(legend_position, inset =  0.02,
-         legend = c(paste("Observed, TFR =", round(observed$tfr, 2)),
-                    paste("Replacement fertility, TFR =",  round(counterfactual$tfr, 2))), 
+         legend = c("Observed",
+                    "Replacement fertility"), 
          lty = c(1, 2), lwd = 2, bg = "white", text.font = 2)
 }
 
@@ -274,23 +291,23 @@ compare <- function(observed, counterfactual, f = sum, label = "Population size"
 # Cohort component method ------------------------------------------
 
 # World
-un_observed <- cohort_component_method("World", 2023, 100)
-un_counter <- cohort_component_method("World", 2023, 100, momentum=T)
+un_observed <- cohort_component_method(region = "World", horizon = 75)
+un_counter <- cohort_component_method(region = "World", horizon = 75, replacement=T)
 world <- list("oberved"=un_observed, "counterfactual"=un_counter)
 
 # Cohort component projection
-us_observed <- cohort_component_method("United States of America", 2023, 100)
-us_counter <- cohort_component_method("United States of America", 2023, 100, momentum=T)
+us_observed <- cohort_component_method("United States of America", 75)
+us_counter <- cohort_component_method("United States of America", 75, replacement=T)
 us <- list("oberved"=us_observed, "counterfactual"=us_counter)
 
 # Germany
-de_observed <- cohort_component_method("Germany", 2023, 100)
-de_counter <- cohort_component_method("Germany", 2023, 100, momentum=T)
+de_observed <- cohort_component_method("Germany", 75)
+de_counter <- cohort_component_method("Germany", 75, replacement=T)
 germany <- list("oberved"=de_observed, "counterfactual"=de_counter)
 
 # Finland
-fi_observed <- cohort_component_method("Finland", 2023, 100)
-fi_counter <- cohort_component_method("Finland", 2023, 100, momentum=T)
+fi_observed <- cohort_component_method("Finland", 75)
+fi_counter <- cohort_component_method("Finland", 75, replacement=T)
 finland <- list("oberved"=fi_observed, "counterfactual"=fi_counter)
 
 # Make the comparisons of population trend
