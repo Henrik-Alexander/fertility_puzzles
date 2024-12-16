@@ -18,7 +18,7 @@ source("U:/packages/wpp/R/wpp_scraping.R")
 #remotes::install_github("timriffe/DemoTools")
 library(DemoTools)
 
-# Define the projection horizon
+ # Define the projection horizon
 end_year <- 2023
 start_year <- 2023
 country <- "France"
@@ -68,7 +68,6 @@ create_df <- function(mx, fx, pop, sex = "f") {
   
   # Combine the data
   data.frame("ageLabel"=df$ageLabel,
-             "value_fx"=df$value,
              "nLx"=df$nLx,
              "Tx"=df$Tx,
              "fx"=df$value)
@@ -133,33 +132,42 @@ project <- function(pop_f, pop_m, age=age_groups, mx_m, mx_f, fx, srb=1.05) {
 
 
 # Project the fertiliy and mortality rate
-project_vital <- function(country, year) {
+project_vital <- function(year, country, srb = 1.05) {
   
   # Load the rates
   mx <- load_time_series(country=country, indicator="Age specific mortality rate m(x,n) - abridged", start=year, end=year)
-  fx <- load_time_series(country=country, indicator="Fertility rates by age of mother (5-year)", start=year, end=year)
-  pop <- load_time_series(country=country, indicator="Population by 5-year age groups and sex", start=2020, end=2020)
-  
+  fx <- load_time_series(country=country, indicator="Fertility rates by age of mother (5-year)", start=2023, end=2023)
+
   # Clean the data
   mx <- clean_data(mx)
   fx <- clean_data(fx)
-  pop <- clean_data(pop)
-  
+
   # Combine the first two age groups of the mortality table
   mx_f <- mx[mx$sex=="Female", c("ageStart", "ageEnd", "value")]
   mx_m <- mx[mx$sex=="Male", c("ageStart", "ageEnd", "value")]
   
+  # Clean the fertility data
+  fx$value <- fx$value / 1000
+  
   # Get the counterfactual TFR
   df <- create_df(mx_f, fx)
   nrr <- sum(1 / (1 + srb) * df$nLx * df$fx, na.rm = T)
-  fx$value_count <- fx$value / nrr
-
-  # Combine the results
-  results <- list(mortality = mx, 
-                  obs_fx = fx$value,
-                  rep_fx = fx$valu_count)
+  df$fx_count <- df$fx / nrr
   
-    return(result)
+  # Attach the male mortality for men
+  lt_male <- clean_lt(lt_abridged(nMx=mx_m$value, 
+                                  Age=mx_m$ageStart, 
+                                  sex="m", 
+                                  mod=F, 
+                                  axmethod= "un", 
+                                  radix=1))
+  df$nLx_m <- lt_male$nLx
+    
+  # Assign identifiers
+  df$country <- country
+  df$year <- year
+  
+    return(df)
   
 }
 
@@ -169,40 +177,19 @@ project_vital <- function(country, year) {
 cohort_component_method <- function(country, start_year, horizon, momentum=F, srb=1.05) {
   if (horizon %% 5 != 0) stop("The horizon is not divisible by 5, but we are working with 5-year age groups.")
   
-  # Range of indicators
-  pop <- load_time_series(country=country, indicator="Population by 5-year age groups and sex", start=start_year, end=start_year) 
-  mx <- load_time_series(country=country, indicator="Age specific mortality rate m(x,n) - abridged", start=start_year, end=start_year)
-  fx <- load_time_series(country=country, indicator="Fertility rates by age of mother (5-year)", start=start_year, end=start_year)
+  years <- seq(start_year, end_year+horizon, by = 5)
   
-  # Clean the data
-  pop <- clean_data(pop)
-  mx <- clean_data(mx)
-  fx <- clean_data(fx)
+  # Range of indicators
+  pop <- load_time_series(country=country, indicator="Population by 5-year age groups and sex", start=start_year, end=start_year)
   
   # Clean the population data
-  pop_f <- pop$value[pop$sex=="Female"]
-  pop_m <- pop$value[pop$sex=="Male"]
+  pop <- clean_data(pop)
+  pop_f <- pop$value[pop$sex == "Female"]
+  pop_m <- pop$value[pop$sex == "Male"]
   
-  # Combine the first two age groups of the mortality table
-  mx_f <- mx[mx$sex=="Female", c("ageStart", "ageEnd", "value")]
-  mx_m <- mx[mx$sex=="Male", c("ageStart", "ageEnd", "value")]
-  
-  # Clean the fertility data
-  fx$value <- fx$value / 1000
-  
-  # Observed tfr
-  tfr <- sum(fx$value * 5, na.rm = T)
-  
-  cat("TFR observed:", tfr, "\n")
-  
-  # Population momentum
-  if (momentum) {
-    df <- create_df(mx_f, fx, pop_m)
-    nrr <- sum(1 / (1 + srb) * df$nLx * df$fx, na.rm = T)
-    fx$value <- fx$value / nrr
-    tfr <- sum(fx$value * 5, na.rm = T)
-    cat("TFR counterfactual:", tfr, "\n")
-  }
+
+  # Project the vital statistics data
+  vital <- lapply(years, project_vital, country=country)
   
   # Create the containers
   projection_m <- projection_f <- matrix(NA, nrow=length(pop_f), ncol=(horizon/5)+1)
