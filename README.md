@@ -1,5 +1,5 @@
 # Code for reproducing results in the Thesis
-This repository contains the [R](https://cran.r-project.org/) for reproducing the results in my thesis "The fertility puzzle". In case of questions, feel free to drop me an <schubert@demogr.mpg.de>.
+This repository contains the [R](https://cran.r-project.org/) for reproducing the results in my thesis "The fertility puzzle". In case of questions, feel free to drop me an e-mail <schubert@demogr.mpg.de>.
 
 
 # Structure
@@ -29,7 +29,7 @@ where $SRB$ is the sex ratio at birth, $_nL_x$ is the lived person-years in the 
 
 
 ## 3. Future fertility
-
+The file `code/prob_tfr_forecast.R` contains the code to create the figure that shows the probabilistic fertility projections by the United Nations.
 ![This figure displays the median, min, max and the Monte Carlo forecasts of the total fertility rate by the United Nations population division.](./figures/un_prob_projections.pdf)
 
 
