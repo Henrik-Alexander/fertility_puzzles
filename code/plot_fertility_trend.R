@@ -79,4 +79,4 @@ ggplot(df, aes(x=Year, y=TFR, group=Code)) +
 ggsave(last_plot(), filename = "figures/panel_fertility.pdf",
        height = 12, width = 20, unit = "cm")
 
-S### END ##################################################
+### END ##################################################

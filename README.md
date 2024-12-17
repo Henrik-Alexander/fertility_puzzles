@@ -11,7 +11,7 @@ This repository contains the [R](https://cran.r-project.org/) for reproducing th
 This file visualises the fertility in the largest countries in the [Human Fertility Database](https://www.humanfertility.org/). The countries are split over panels according to their geographic region: Anglo-Saxon, East-Asian, Eastern Europe, German-speaking, Mediterranean, and the Nordics. Furthermore, highlighted countries are Finland, France, Norway, and the United States.
 
 
-
+![Time trend of the total fertility rate across countries grouped by geographic-cultural similarities in the period between 2000 and 2020. *Source:* Data is obtained from the Human Fertility Database.](./figures/panel_fertility.pdf)
 
 ## 2. Cohort component method
 The cohort component method is widely used to project population structures and sizes. The cohort component methods allows to account for age structure. In this case, I used a cohort component method that has three dimensions: year (2023-2098), age (0-100+) and sex (male and female).
@@ -26,5 +26,10 @@ As discussed in the thesis, I model two different scenarios:
 $$NRR=\sum_{i=1}^n \frac{1}{1 + SRB} \cdot _nL_x \cdot f_x,$$
 
 where $SRB$ is the sex ratio at birth, $_nL_x$ is the lived person-years in the life table and $f_x$ is the age-specific fertility rate. Afterwards, I obtain the adjusted age-specific fertility rates though dividing the observed rates by the net reproductive rate: $f_x^{NRR=1}= \frac{f_x}{NRR}$.
+
+
+## 3. Future fertility
+
+![This figure displays the median, min, max and the Monte Carlo forecasts of the total fertility rate by the United Nations population division.](./figures/un_prob_projections.pdf)
 
 
