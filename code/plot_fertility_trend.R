@@ -49,12 +49,93 @@ df <- df[df$group != "", ]
 # Country studies
 countries <- c("FIN", "FRATNP", "DEUTNP", "NOR", "USA")
 c_labs <- c("Finland", "France", "Germany","Norway", "United States")
+country_groups <- unique(df$group)
 study_countries <- df[df$Code %in% countries, ]
 study_countries$label <- ""
+
 for (i in seq_along(countries)) {
   study_countries$label[study_countries$Code == countries[i]] <- c_labs[i]
-  
 }
+
+
+### Base R plots -----------------------------
+
+
+
+
+
+
+plot_countrygroup <- function(group, dataset=df, label_data=study_countries) {
+
+  # Plot the grey lines
+  tmp <- dataset[dataset$group == group, ]
+  countries <- unique(tmp$Code)
+  
+  
+  # Create the base plot
+  plot.new()
+  plot.window(xlim = c(2000, 2027),
+              ylim = range(dataset$TFR),
+              xaxs = "i")
+
+  # Plot the lines
+  for(country in countries) {
+  lines(x = tmp$Year[tmp$Code == country],
+        y = tmp$TFR[tmp$Code == country],
+        col = "grey25",
+        lwd = 2)
+  }
+  
+  # Color of the line
+  cdf <- label_data[label_data$Code %in% countries & study_countries$group==group, ]
+  for (country in unique(cdf$Code)) {
+    tmp2 <- cdf[cdf$Code == country, ]
+    lines(x = tmp2$Year,
+          y = tmp2$TFR,
+          col = cols[colour_count], 
+          lwd = 3)
+    points(x = tmp2$Year,
+          y = tmp2$TFR,
+          col = cols[colour_count],
+          cex = 1.5,
+          pch = 14 + colour_count)
+    text(x = max(tmp2$Year),
+         y = tmp2$TFR[tmp2$Year == max(tmp2$Year)],
+         label = sub(" ", "\n", unique(tmp2$label)),
+         pos = ifelse(group =="Nordics", 4, 3),
+         offset = ifelse(group == "Nordics", 0.1, 0.8),
+         cex = 1.7,
+         col = cols[colour_count])
+    colour_count <<- colour_count + 1
+  }
+  
+  # Draw the axis
+  axis(1, at = seq(2000, 2030, by = 5), lwd = 2, line = -0.5)
+  axis(1, at = 2000:2027, lwd = 0.5, label = F, tcl = -0.2, line = -0.5)
+  axis(2, at = seq(0.5, 2.5, by = 0.5), lwd = 2, line = 0, las = 1)
+  axis(2, at = seq(0.9, 2.5, by = 0.1), tcl = -0.3, label = F, line = 0)
+  
+  # Labels
+  title(main = paste(group, "countries"),  line = 0.2)
+  title(ylab = "Total fertility rate", xlab = "Year", line = 2.5)
+
+}
+
+# Apply the function across countries
+pdf(file = "figures/panel_fertility_trend.pdf", height=7, width=12)
+# Create a colour vector
+cols <- viridis::cividis(n = 6)
+colour_count <- 1
+# Set 
+par(family = "serif", font = 1, cex.main = 1.5, cex.axis = 1.2, cex.lab = 1.5,
+    mar = c(4, 4, 2, 2), mfrow = c(2, 3))
+lapply(country_groups, plot_countrygroup)
+dev.off()
+
+### GGPLOT plot ------------------------------
+
+
+
 
 # Plot the time-series
 ggplot(df, aes(x=Year, y=TFR, group=Code)) +

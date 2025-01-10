@@ -38,15 +38,24 @@ un_observed <- cohort_component_method(region = "World", horizon = 75)
 un_counter <- cohort_component_method(region = "World", horizon = 75, replacement=T)
 world <- list("oberved"=un_observed, "counterfactual"=un_counter)
 
+Sys.sleep(10)
+
+
 # Cohort component projection
 us_observed <- cohort_component_method("United States of America", 75)
 us_counter <- cohort_component_method("United States of America", 75, replacement=T)
 us <- list("oberved"=us_observed, "counterfactual"=us_counter)
 
+Sys.sleep(10)
+
+
 # Germany
 de_observed <- cohort_component_method("Germany", 75)
 de_counter <- cohort_component_method("Germany", 75, replacement=T)
 germany <- list("oberved"=de_observed, "counterfactual"=de_counter)
+
+Sys.sleep(10)
+
 
 # Finland
 fi_observed <- cohort_component_method("Finland", 75)
@@ -143,4 +152,4 @@ plot_age_groups <- function (observed, counterfactual) {
   legend("right", inset = 0.05, legend = rownames(tmp), col = colors[1:nrow(tmp)], lty=1)
 }
 
-### END ##########################
+### END #########################
