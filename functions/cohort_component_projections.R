@@ -269,20 +269,39 @@ compare <- function(observed, counterfactual, f = sum, label = "Population size"
   obs <- apply(obs, 2, FUN = f)
   cou <- apply(cou, 2, FUN = f)
   
+  # colors
+  col_cou <- "#998ec3"
+  col_obs <- "#f1a340"
+  
+
+  
   # Adjust downwards
   if (max(obs) > 1e+6) {
     obs <- obs / 1e+6
     cou <- cou / 1e+6
-    label <- paste(label, "(in million)")
+    label <- paste(label, "(m)")
   }
   # Plot the result
   years <- as.numeric(names(obs))
+  
+  # Filter the data
+  years <- years[years <= 2100]
+  obs <- obs[1:length(years)]
+  cou <- cou[1:length(years)]
+  
   henrik_plot(xlim=range(years), ylim=range(c(obs, cou)),
               xlab = "Year", ylab = label)
-  lines(x=years, y=obs, lwd =2)
-  lines(x=years, y=cou, lty=2, lwd = 2)
-  legend(legend_position, inset =  0.02,
-         legend = c("Observed",
-                    "Replacement fertility"), 
-         lty = c(1, 2), lwd = 2, bg = "white", text.font = 2)
+  lines(x=years, y=obs, lwd=3, col = col_obs)
+  lines(x=years, y=cou, lwd=3, col = col_cou)
+  
+  # Create the labels
+  text(y=obs[5], x=years[5], pos=1, adj=0.5, labels="freeze-rate", col=col_obs, cex=1.5)
+  text(y=cou[12], x=years[12], pos=4, adj=1, labels="replacement", col=col_cou, cex=1.5)
+  
+  
+  # legend(legend_position, inset =  0.02,
+  #        main = "Fertility:",
+  #        legend = c("Freeze-rate",
+  #                   "Replacemeny"), 
+  #        lty = c(1, 2), lwd = 2, bg = "white", text.font = 2, cex = 0.5)
 }

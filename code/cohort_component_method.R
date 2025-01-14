@@ -68,7 +68,7 @@ countries <- c("World", "United States", "Germany", "Finland")
 
 # Plot the data
 pdf(file = "figures/panel_momentum_growth.pdf", width = 10, height = 8)
-par(mfrow=c(2, 2), font.lab = 2, oma = c(0, 0, 0, 0), mar =c(4, 4, 2, 2))
+par(mfrow=c(2, 2), font.lab = 2, oma = c(0, 0, 0, 0), mar =c(4, 4, 2, 1))
 for (i in seq_along(df)) {
   compare(df[[i]]$oberved, df[[i]]$counterfactual)
   title(countries[i])
@@ -118,20 +118,21 @@ share_working <- function(pop, working = age_groups %in% working_ages) {
 
 # Plot the data
 pdf("figures/panel_momentum_working_age.pdf", width = 10, height = 8)
-par(mfrow=c(2, 2), font.lab = 2, oma = c(0, 0, 0, 0), mar =c(4, 4, 2, 2))
+par(mfrow=c(2, 2), font.lab = 2, oma = c(0, 0, 0, 0), mar =c(3, 4, 2, 0.5),
+    family="serif", cex.axis=1.3, cex.main=2, cex.lab=1.3)
 for (i in seq_along(df)) {
-  compare(df[[i]]$oberved, df[[i]]$counterfactual, f = share_working, label = "Share working age (in %)", 
+  compare(df[[i]]$oberved, df[[i]]$counterfactual, f = share_working, label = "Share working age (%)", 
           legend_position = "right")
-  title(countries[i])
+  title(countries[i], line = 0.5)
 }
 dev.off()
 
 
 # Project share of working age
-compare(un_observed, un_counter, f = share_working, label = "Share working (in %)")
-compare(fi_observed, fi_counter, f = share_working, label = "Share working (in %)")
-compare(de_observed, de_counter, f = share_working, label = "Share working (in %)")
-compare(us_observed, us_counter, f = share_working, label = "Share working (in %)")
+compare(un_observed, un_counter, f = share_working, label = "Share working (%)")
+compare(fi_observed, fi_counter, f = share_working, label = "Share working (%)")
+compare(de_observed, de_counter, f = share_working, label = "Share working (%)")
+compare(us_observed, us_counter, f = share_working, label = "Share working (%)")
 
 ## Plot the data ----------------------------------------------------
 
