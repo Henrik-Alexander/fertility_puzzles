@@ -9,6 +9,7 @@
 library(readxl)
 library(tidyverse)
 library(HMDHFDplus)
+library(ggrepel)
 
 # Theme set
 theme_set(theme_test(base_size = 14, base_family = "serif"))
@@ -106,6 +107,7 @@ plot_countrygroup <- function(group, dataset=df, label_data=study_countries) {
          offset = ifelse(group == "Nordics", 0.1, 0.8),
          cex = 1.7,
          col = cols[colour_count])
+    abline(v=2008)
     colour_count <<- colour_count + 1
   }
   
@@ -133,8 +135,6 @@ lapply(country_groups, plot_countrygroup)
 dev.off()
 
 ### GGPLOT plot ------------------------------
-
-
 
 
 # Plot the time-series
